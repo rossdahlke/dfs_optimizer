@@ -1,7 +1,7 @@
 library(lpSolveAPI)
 library(dplyr)
 
-train <- dplyr::filter(readr::read_csv("test_data/20200731_dfs_300_3.csv"), is.na(injury_status))
+train <- dplyr::filter(readr::read_csv("/Users/rossdahlke/Downloads/DFF_NBA_cheatsheet_2020-08-02.csv"), is.na(injury_status))
 train$id <- seq(1, nrow(train),1)
 
 high_scoring <- T
@@ -94,15 +94,16 @@ optimize_nba <- function(train,
   }
   
   ## Get the players on the team
-  team <- tibble(train, get.variables(dfs_fantasy)) %>% 
-    filter(`get.variables(dfs_fantasy)` == 1) %>% 
-    select(-`get.variables(dfs_fantasy)`) %>% 
+  team <- train %>% 
+    cbind(tibble(selected_player = get.variables(dfs_fantasy))) %>% 
+    filter(selected_player == 1) %>% 
+    select(-selected_player) %>% 
     mutate(team_salary = sum(salary),
            team_points = sum(ppg_projection)) %>% 
     {if ("over_under" %in% colnames(.)) mutate(., avg_over_under = mean(over_under)) else .} %>% 
     {if ("spread" %in% colnames(.)) mutate(., avg_abs_spread = mean(abs(spread))) else .} %>% 
     group_by(position) %>% 
-    mutate(position = if_else(position == "PG" & rank(-ppg_projection) == 3, "UTIL",
+    mutate(dfs_position = if_else(position == "PG" & rank(-ppg_projection) == 3, "UTIL",
                               if_else(position == "PG" & rank(-ppg_projection) == 2, "G",
                                       if_else(position == "SG" & rank(-ppg_projection) == 3, "UTIL",
                                               if_else(position == "SG" & rank(-ppg_projection) == 2, "G", 
@@ -111,8 +112,9 @@ optimize_nba <- function(train,
                                                                       if_else(position == "PF" & rank(-ppg_projection) == 3, "UTIL",
                                                                               if_else(position == "PF" & rank(-ppg_projection) == 2, "F",
                                                                                       if_else(position == "C" & rank(-ppg_projection) == 2, "UTIL", position))))))))),
-           position = factor(position, levels = c("PG", "SG", "SF", "PF", "C", "G", "F", "UTIL"))) %>% 
-    arrange(position) 
+           dfs_position = factor(dfs_position, levels = c("PG", "SG", "SF", "PF", "C", "G", "F", "UTIL"))) %>%
+    ungroup() %>% 
+    arrange(dfs_position) 
   
   return(team)
 }
@@ -138,7 +140,7 @@ top_nba_teams <- function(train, cap, n_top, league, setplayers = NULL) {
 }
 
 
-team <- optimize_nba(train, cap = 50000, league = "draft_kings", removeteams = restrict)
+team <- optimize_nba(train, cap = 50000, league = "draft_kings")
 
 ## Generate the top 10 teams with no constraints (this may be a bit slow with other constraints)
 top_1000 <- top_nba_teams(train, cap = 50000, n_top = 100, league = "draft_kings")
