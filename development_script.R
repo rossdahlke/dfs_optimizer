@@ -143,13 +143,13 @@ top_nba_teams <- function(train, cap, n_top, league, setplayers = NULL) {
 team <- optimize_nba(train, cap = 50000, league = "draft_kings")
 
 ## Generate the top 10 teams with no constraints (this may be a bit slow with other constraints)
-top_1000 <- top_nba_teams(train, cap = 50000, n_top = 100, league = "draft_kings")
+top_100 <- top_nba_teams(train, cap = 50000, n_top = 100, league = "draft_kings")
 
-ggplot(top_1000, aes(avg_over_under, team_points)) +
+ggplot(top_100, aes(avg_over_under, team_points)) +
   geom_point() +
   geom_smooth(method = "lm")
 
-ggplot(top_1000, aes(avg_abs_spread, team_points)) +
+ggplot(top_100, aes(avg_abs_spread, team_points)) +
   geom_point() +
   geom_smooth(method = "lm")
 
@@ -161,7 +161,7 @@ minimize_spread <- function(top_teams){
   return(min_spread)
 }
 
-min_spread <- top_1000 %>% 
+min_spread <- top_100 %>% 
   minimize_spread()
 
 maximize_over_under <- function(top_teams){
@@ -172,10 +172,16 @@ maximize_over_under <- function(top_teams){
   return(min_spread)
 }
 
-max_over_under <- top_1000 %>% 
+max_over_under <- top_100 %>% 
   maximize_over_under()
 
 top_players <- function(top_teams){
   top_players <- top_teams %>% 
-    count(position, first_name, last_name)
+    count(position, first_name, last_name) %>% 
+    arrange(desc(n))
+  
+  return(top_players)
 }
+
+top_100 %>% 
+  top_players()
