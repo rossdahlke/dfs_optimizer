@@ -1,5 +1,6 @@
 library(lpSolveAPI)
 library(dplyr)
+library(stringr)
 
 train <- dplyr::filter(readr::read_csv("/Users/rossdahlke/Downloads/DFF_NBA_cheatsheet_2020-08-02.csv"), is.na(injury_status))
 train$id <- seq(1, nrow(train),1)
@@ -13,14 +14,15 @@ optimize_nba <- function(train,
                          league, 
                          setplayers = NULL, 
                          removeteams = NULL){
+  
   ## set constraints to use
-  pg <- ifelse(train$position == "PG", 1, 0)
-  sg <- ifelse(train$position == "SG", 1, 0)
-  sf <- ifelse(train$position == "SF", 1, 0)
-  pf <- ifelse(train$position == "PF", 1, 0)
-  c <- ifelse(train$position == "C", 1, 0)
-  g <- ifelse(train$position == "PG" | train$position == "SG", 1, 0)
-  f <- ifelse(train$position == "SF" | train$position == "PF", 1, 0)
+  pg <- ifelse(str_detect(train$position, "PG"), 1, 0)
+  sg <- ifelse(str_detect(train$position, "SG"), 1, 0)
+  sf <- ifelse(str_detect(train$position, "SF"), 1, 0)
+  pf <- ifelse(str_detect(train$position, "PF"), 1, 0)
+  c <- ifelse(str_detect(train$position, "C"), 1, 0)
+  g <- ifelse(str_detect(train$position, "PG") | str_detect(train$position, "SG"), 1, 0)
+  f <- ifelse(str_detect(train$position, "SF") | str_detect(train$position, "PF"), 1, 0)
   util <- ifelse(!is.na(train$position), 1, 0)
   
   ## number of decision variables is equal to the number of fantasy players/teams
