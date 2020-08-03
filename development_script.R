@@ -25,6 +25,17 @@ optimize_nba <- function(train,
   f <- ifelse(str_detect(train$position, "SF") | str_detect(train$position, "PF"), 1, 0)
   util <- ifelse(!is.na(train$position), 1, 0)
   
+  # also going to add on position flags as columns to make outputting easier
+  train <- train %>% 
+    cbind(pg = pg,
+          sg = sg,
+          sf = sf,
+          pf = pf,
+          c = c,
+          g = g,
+          f = f,
+          util = util)
+  
   ## number of decision variables is equal to the number of fantasy players/teams
   dfs_fantasy <- make.lp(0, nrow(train))
   
@@ -105,6 +116,9 @@ optimize_nba <- function(train,
     {if ("over_under" %in% colnames(.)) mutate(., avg_over_under = mean(over_under)) else .} %>% 
     {if ("spread" %in% colnames(.)) mutate(., avg_abs_spread = mean(abs(spread))) else .} %>% 
     group_by(position) %>% 
+    mutate(dfs_position = case_when(
+      pg == 1 & rank(.[pg==1] == 1 ~ "PG")
+    ))
     mutate(dfs_position = if_else(position == "PG" & rank(-ppg_projection) == 3, "UTIL",
                               if_else(position == "PG" & rank(-ppg_projection) == 2, "G",
                                       if_else(position == "SG" & rank(-ppg_projection) == 3, "UTIL",
