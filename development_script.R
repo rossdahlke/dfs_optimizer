@@ -1,6 +1,9 @@
 library(lpSolveAPI)
 library(dplyr)
 library(stringr)
+library(ompr)
+library(ompr.roi)
+library(ROI.plugin.glpk)
 
 train <- dplyr::filter(readr::read_csv("/Users/rossdahlke/Downloads/DFF_NBA_cheatsheet_2020-08-02.csv"), is.na(injury_status))
 train$id <- seq(1, nrow(train),1)
@@ -115,22 +118,8 @@ optimize_nba <- function(train,
            team_points = sum(ppg_projection)) %>% 
     {if ("over_under" %in% colnames(.)) mutate(., avg_over_under = mean(over_under)) else .} %>% 
     {if ("spread" %in% colnames(.)) mutate(., avg_abs_spread = mean(abs(spread))) else .} %>% 
-    group_by(position) %>% 
-    mutate(dfs_position = case_when(
-      pg == 1 & rank(.[pg==1] == 1 ~ "PG")
-    ))
-    mutate(dfs_position = if_else(position == "PG" & rank(-ppg_projection) == 3, "UTIL",
-                              if_else(position == "PG" & rank(-ppg_projection) == 2, "G",
-                                      if_else(position == "SG" & rank(-ppg_projection) == 3, "UTIL",
-                                              if_else(position == "SG" & rank(-ppg_projection) == 2, "G", 
-                                                      if_else(position == "SF" & rank(-ppg_projection) == 3, "UTIL",
-                                                              if_else(position == "SF" & rank(-ppg_projection) == 2, "F",
-                                                                      if_else(position == "PF" & rank(-ppg_projection) == 3, "UTIL",
-                                                                              if_else(position == "PF" & rank(-ppg_projection) == 2, "F",
-                                                                                      if_else(position == "C" & rank(-ppg_projection) == 2, "UTIL", position))))))))),
-           dfs_position = factor(dfs_position, levels = c("PG", "SG", "SF", "PF", "C", "G", "F", "UTIL"))) %>%
-    ungroup() %>% 
-    arrange(dfs_position) 
+    get_positions()
+  
   
   return(team)
 }
