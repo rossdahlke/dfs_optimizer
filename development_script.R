@@ -5,8 +5,16 @@ library(ompr)
 library(ompr.roi)
 library(ROI.plugin.glpk)
 
-train <- dplyr::filter(readr::read_csv("/Users/rossdahlke/Downloads/DFF_NBA_cheatsheet_2020-08-02.csv"), is.na(injury_status))
-train$id <- seq(1, nrow(train),1)
+position <- readr::read_csv("/Users/rossdahlke/Downloads/DKSalaries (2).csv") %>% 
+  janitor::clean_names() %>% 
+  rename(dk_positions = position) %>% 
+  select(-id)
+
+train <- dplyr::filter(readr::read_csv("/Users/rossdahlke/Downloads/DFF_NBA_cheatsheet_2020-08-04.csv"), is.na(injury_status)) %>%
+  mutate(id = row_number(),
+         name = paste0(first_name," ",last_name)) %>% 
+  left_join(position) %>% 
+  mutate(position = dk_positions)
 
 high_scoring <- T
 close_game <- T
@@ -64,6 +72,7 @@ optimize_nba <- function(train,
     add.constraint(dfs_fantasy, sf, ">=", 1)
     add.constraint(dfs_fantasy, pf, ">=", 1)
     add.constraint(dfs_fantasy, c, ">=", 1)
+    add.constraint(dfs_fantasy, c, "<=", 2)
     add.constraint(dfs_fantasy, g, ">=", 3)
     add.constraint(dfs_fantasy, f, ">=", 3)
     add.constraint(dfs_fantasy, util, "=", 8)
